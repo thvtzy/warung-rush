@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Warung Rush — a tiny Indonesian street-food cooking game</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="hudbox">💰 <span id="score">Rp0</span></div>
+    <div class="hudbox">🔥 <span id="combo">x0</span></div>
+    <div class="hudbox" id="hearts">❤️❤️❤️</div>
+    <div class="hudbox" id="timewrap">
+      <div id="timelabel">SHIFT ⏱ 2:30</div>
+      <div id="timebar-outer"><div id="timebar"></div></div>
+    </div>
+    <div class="hudbox" id="mutebtn" title="Sound on/off">🔊</div>
+  </div>
+
+  <div id="customers"></div>
+  <div id="msg"></div>
+
+  <div id="platezone">
+    <div id="platelabel"><span>🍽️ Your plate</span><span id="platecount"></span></div>
+    <div id="plate"><span class="hint">Tap ingredients below to build a dish…</span></div>
+    <div id="platebtns">
+      <button class="pbtn" id="undobtn">↩️ Undo last</button>
+      <button class="pbtn" id="trashbtn">🗑️ Throw away</button>
+    </div>
+  </div>
+
+  <div id="tray"></div>
+  <div id="keyhints">⌨️ Keys 1–0 and Q–T pick ingredients · Enter serves a ready dish · Backspace undoes · Delete clears the plate</div>
+</div>
+
+<div class="overlay" id="startscreen">
+  <div class="card">
+    <h1>🍜 Warung Rush</h1>
+    <h2>A tiny Indonesian street-food cooking game</h2>
+    <p>👩‍🍳 Customers order warung classics — <b>Nasi Goreng</b>, <b>Sate Ayam</b>, <b>Bakso</b> and more.</p>
+    <p>👆 Tap the ingredients (or use the keyboard) to build the dish on your plate. When a customer's order glows <b>green</b>, tap the customer to serve it.</p>
+    <p>⏳ Serve fast for tips and combo bonuses. If a customer's patience runs out, you lose a ❤️. Lose 3 and the shift ends!</p>
+    <p class="center">Your shift lasts <b>2 minutes 30 seconds</b>. Earn as much as you can!</p>
+    <button class="bigbtn" id="startbtn">▶ Start cooking</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="endscreen">
+  <div class="card">
+    <h1 id="endtitle">Shift over!</h1>
+    <div id="stars">☆☆☆</div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="st-money">Rp0</div><div class="k">Earned</div></div>
+      <div class="stat"><div class="v" id="st-served">0</div><div class="k">Dishes served</div></div>
+      <div class="stat"><div class="v" id="st-combo">x0</div><div class="k">Best combo</div></div>
+      <div class="stat"><div class="v" id="st-lost">0</div><div class="k">Walked away</div></div>
+    </div>
+    <p class="center" id="endnote"></p>
+    <button class="bigbtn" id="againbtn">↻ Cook again</button>
+  </div>
+</div>
+
+<script src="recipes.js"></script>
+<script src="audio.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

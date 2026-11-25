@@ -3,7 +3,7 @@
 A tiny, original **Indonesian street-food cooking game** that runs entirely in your
 browser — no downloads, no server, no network needed after the page loads.
 
-**▶ Play it here: https://thvtzy.github.io/warung-rush/**
+**▶ Play it here: https://thvtzy.github.io/warung-rush/game/**
 
 ## How to play
 
