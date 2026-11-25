@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Warung Rush — a tiny Indonesian street-food cooking game</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background:linear-gradient(160deg,#2b1503 0%,#4a2408 45%,#6b3410 100%);
+    color:#fff7ea; overflow-x:hidden; min-height:100%;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #app { width:100%; max-width:760px; padding:10px 12px 18px; display:flex; flex-direction:column; gap:10px; }
+
+  /* ---------- HUD ---------- */
+  #hud { display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; }
+  .hudbox {
+    background:rgba(0,0,0,.35); border:2px solid #ffb347; border-radius:12px;
+    padding:6px 12px; font-weight:700; font-size:17px; display:flex; align-items:center; gap:6px;
+  }
+  #timewrap { flex:1 1 160px; flex-direction:column; align-items:stretch; gap:4px; }
+  #timebar-outer { height:12px; background:#3a2410; border-radius:6px; overflow:hidden; }
+  #timebar { height:100%; width:100%; background:linear-gradient(90deg,#ffd23f,#ff8c42); transition:width .2s linear; }
+  #timelabel { font-size:13px; text-align:center; letter-spacing:.5px; }
+  #mutebtn { cursor:pointer; user-select:none; }
+
+  /* ---------- Customers ---------- */
+  #customers { display:flex; gap:10px; }
+  .cust {
+    flex:1; background:linear-gradient(180deg,#fff7ea,#ffe3b3); color:#4a2408; border-radius:16px;
+    padding:10px 8px 12px; min-height:172px; position:relative; border:3px solid transparent;
+    display:flex; flex-direction:column; align-items:center; gap:5px; transition:transform .1s, border-color .15s, box-shadow .15s;
+  }
+  .cust.empty { background:rgba(255,255,255,.08); color:#d9c7a7; border:2px dashed rgba(255,179,71,.4); justify-content:center; font-size:14px; text-align:center; }
+  .cust.ready { border-color:#37d67a; box-shadow:0 0 18px rgba(55,214,122,.75); cursor:pointer; animation:pulse 0.7s infinite alternate; }
+  @keyframes pulse { from{ transform:scale(1);} to{ transform:scale(1.03);} }
+  .cust.shake { animation:shake .3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+  .face { font-size:44px; line-height:1; }
+  .dishname { font-weight:800; font-size:16px; text-align:center; }
+  .order { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; }
+  .order .oi { font-size:21px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:8px; border:2px solid #e0c491; filter:grayscale(1) opacity(.45); }
+  .order .oi.got { filter:none; border-color:#37d67a; background:#eafff1; }
+  .price { font-size:13px; font-weight:700; color:#8a5a00; }
+  .patience { width:100%; height:9px; background:#e8d5ae; border-radius:5px; overflow:hidden; margin-top:auto; }
+  .patience > div { height:100%; background:#37d67a; transition:width .2s linear; }
+
+  /* ---------- Plate ---------- */
+  #platezone { background:rgba(0,0,0,.3); border:2px solid #ffb347; border-radius:16px; padding:10px 12px; }
+  #platelabel { font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#ffcf87; margin-bottom:6px; display:flex; justify-content:space-between; }
+  #plate { min-height:56px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  #plate .pi { font-size:30px; background:#fff7ea; border-radius:10px; width:48px; height:48px; display:flex; align-items:center; justify-content:center; }
+  #plate .hint { color:#d9c7a7; font-size:14px; }
+  #platebtns { display:flex; gap:8px; margin-top:8px; }
+  .pbtn { flex:1; padding:9px; border:none; border-radius:10px; font-size:15px; font-weight:800; cursor:pointer; }
+  #undobtn { background:#ffd23f; color:#4a2408; }
+  #trashbtn { background:#e8483f; color:#fff; }
+  .pbtn:active { transform:scale(.97); }
+  .pbtn:disabled { opacity:.4; cursor:default; }
+
+  /* ---------- Ingredients ---------- */
+  #tray { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .ing {
+    background:linear-gradient(180deg,#fff7ea,#ffe9c4); border:2px solid #e0a458; border-radius:14px;
+    padding:8px 2px 6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:1px;
+    font-family:inherit; transition:transform .05s, opacity .15s;
+  }
+  .ing .e { font-size:30px; line-height:1.1; }
+  .ing .n { font-size:11px; font-weight:700; color:#6b3410; }
+  .ing:active { transform:scale(.93); }
+  .ing.used { opacity:.35; filter:grayscale(.7); }
+
+  /* ---------- Floating score ---------- */
+  .floaty { position:fixed; font-weight:900; font-size:22px; color:#ffd23f; text-shadow:0 2px 6px #000; pointer-events:none; z-index:60; animation:floatup 1s ease-out forwards; }
+  @keyframes floatup { from{ opacity:1; transform:translateY(0);} to{ opacity:0; transform:translateY(-56px);} }
+
+  /* ---------- Overlays ---------- */
+  .overlay { position:fixed; inset:0; background:rgba(20,8,0,.82); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px; }
+  .card { background:linear-gradient(180deg,#fff7ea,#ffe3b3); color:#4a2408; border-radius:20px; padding:26px 24px; max-width:520px; width:100%; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,.6); }
+  .card h1 { font-size:34px; margin-bottom:2px; }
+  .card h2 { font-size:15px; color:#a35b12; font-weight:700; margin-bottom:14px; }
+  .card p { font-size:15px; line-height:1.5; margin-bottom:10px; text-align:left; }
+  .card p.center { text-align:center; }
+  .bigbtn { background:#e8483f; color:#fff; border:none; font-size:19px; font-weight:900; padding:13px 34px; border-radius:12px; cursor:pointer; margin-top:10px; box-shadow:0 4px 0 #a52a23; font-family:inherit; }
+  .bigbtn:active { transform:translateY(3px); box-shadow:0 1px 0 #a52a23; }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0 4px; }
+  .stat { background:#fff; border:2px solid #e8cf9e; border-radius:12px; padding:10px; }
+  .stat .v { font-size:22px; font-weight:900; }
+  .stat .k { font-size:12px; color:#a35b12; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+  #stars { font-size:40px; letter-spacing:6px; margin:6px 0 0; }
+  .hidden { display:none !important; }
+  #msg { min-height:20px; text-align:center; font-weight:700; color:#ffcf87; font-size:15px; }
+  @media (max-width:520px) {
+    .face { font-size:36px; } .cust { min-height:158px; }
+    .ing .e { font-size:25px; } .hudbox { font-size:15px; padding:5px 9px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="hudbox">💰 <span id="score">Rp0</span></div>
+    <div class="hudbox">🔥 <span id="combo">x0</span></div>
+    <div class="hudbox" id="hearts">❤️❤️❤️</div>
+    <div class="hudbox" id="timewrap">
+      <div id="timelabel">SHIFT ⏱ 2:30</div>
+      <div id="timebar-outer"><div id="timebar"></div></div>
+    </div>
+    <div class="hudbox" id="mutebtn" title="Sound on/off">🔊</div>
+  </div>
+
+  <div id="customers"></div>
+  <div id="msg"></div>
+
+  <div id="platezone">
+    <div id="platelabel"><span>🍽️ Your plate</span><span id="platecount"></span></div>
+    <div id="plate"><span class="hint">Tap ingredients below to build a dish…</span></div>
+    <div id="platebtns">
+      <button class="pbtn" id="undobtn">↩️ Undo last</button>
+      <button class="pbtn" id="trashbtn">🗑️ Throw away</button>
+    </div>
+  </div>
+
+  <div id="tray"></div>
+</div>
+
+<div class="overlay" id="startscreen">
+  <div class="card">
+    <h1>🍜 Warung Rush</h1>
+    <h2>A tiny Indonesian street-food cooking game</h2>
+    <p>👩‍🍳 Customers order warung classics — <b>Nasi Goreng</b>, <b>Sate Ayam</b>, <b>Bakso</b> and more.</p>
+    <p>👆 Tap the ingredients to build the dish on your plate. When a customer's order glows <b>green</b>, tap the customer to serve it.</p>
+    <p>⏳ Serve fast for tips and combo bonuses. If a customer's patience runs out, you lose a ❤️. Lose 3 and the shift ends!</p>
+    <p class="center">Your shift lasts <b>2 minutes 30 seconds</b>. Earn as much as you can!</p>
+    <button class="bigbtn" id="startbtn">▶ Start cooking</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="endscreen">
+  <div class="card">
+    <h1 id="endtitle">Shift over!</h1>
+    <div id="stars">☆☆☆</div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="st-money">Rp0</div><div class="k">Earned</div></div>
+      <div class="stat"><div class="v" id="st-served">0</div><div class="k">Dishes served</div></div>
+      <div class="stat"><div class="v" id="st-combo">x0</div><div class="k">Best combo</div></div>
+      <div class="stat"><div class="v" id="st-lost">0</div><div class="k">Walked away</div></div>
+    </div>
+    <p class="center" id="endnote"></p>
+    <button class="bigbtn" id="againbtn">↻ Cook again</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= Warung Rush — original game, written from scratch ================= */
+const ING = {
+  nasi:   { e:"🍚", n:"Rice" },
+  mie:    { e:"🍜", n:"Noodles" },
+  telur:  { e:"🍳", n:"Egg" },
+  ayam:   { e:"🍗", n:"Chicken" },
+  kecap:  { e:"🍶", n:"Soy sauce" },
+  cabai:  { e:"🌶️", n:"Chili" },
+  sayur:  { e:"🥬", n:"Veggies" },
+  tusuk:  { e:"🍢", n:"Skewer" },
+  kacang: { e:"🥜", n:"Peanut" },
+  daging: { e:"🥩", n:"Beef" },
+  kuah:   { e:"🥣", n:"Broth" },
+  kerupuk:{ e:"🍘", n:"Crackers" },
+  teh:    { e:"🍵", n:"Tea" },
+  es:     { e:"🧊", n:"Ice" },
+  gula:   { e:"🍬", n:"Sugar" }
+};
+const DISHES = [
+  { name:"Nasi Goreng",  items:["nasi","telur","ayam","cabai","kecap"] },
+  { name:"Mie Goreng",   items:["mie","telur","sayur","ayam"] },
+  { name:"Sate Ayam",    items:["ayam","tusuk","kacang","kecap"] },
+  { name:"Bakso Sapi",   items:["daging","mie","kuah","sayur"] },
+  { name:"Nasi Campur",  items:["nasi","ayam","telur","cabai","kerupuk"] },
+  { name:"Es Teh Manis", items:["teh","es","gula"] }
+];
+const FACES = ["🧑","👩","👨","🧕","👵","👴","👦","👧","🧔","👱‍♀️"];
+const SHIFT_LEN = 150; // seconds
+
+const priceOf = d => 5000 + 3000 * d.items.length;
+const rp = n => "Rp" + n.toLocaleString("id-ID");
+
+let S = null; // game state
+let audioCtx = null, muted = false;
+
+function beep(freq, dur, type, vol, when) {
+  if (muted) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime + (when || 0);
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + dur);
+  } catch (e) { /* sound is optional */ }
+}
+const sndClick = () => beep(660, 0.06, "triangle", 0.08);
+const sndServe = () => { beep(523, .1, "sine", .12); beep(659, .1, "sine", .12, .08); beep(784, .16, "sine", .12, .16); };
+const sndBad   = () => beep(160, 0.2, "sawtooth", 0.07);
+const sndPop   = () => beep(880, 0.07, "sine", 0.06);
+const sndOut   = () => { beep(392, .14, "sine", .1); beep(311, .14, "sine", .1, .12); beep(262, .22, "sine", .1, .24); };
+
+function newGame() {
+  S = {
+    running: true,
+    timeLeft: SHIFT_LEN,
+    money: 0, served: 0, lost: 0,
+    combo: 0, bestCombo: 0,
+    hearts: 3,
+    plate: [],
+    customers: [null, null, null],
+    spawnIn: 0.4,
+    tick: 0
+  };
+  document.getElementById("startscreen").classList.add("hidden");
+  document.getElementById("endscreen").classList.add("hidden");
+  setMsg("First customers are coming…");
+  renderAll();
+}
+
+function elapsed() { return SHIFT_LEN - S.timeLeft; }
+function spawnEvery() { return Math.max(2.8, 6 - elapsed() * 0.022); }
+function patienceMax() { return Math.max(30, 50 - elapsed() * 0.13); }
+
+function spawnCustomer() {
+  const free = S.customers.map((c, i) => c ? -1 : i).filter(i => i >= 0);
+  if (!free.length) return;
+  const slot = free[Math.floor(Math.random() * free.length)];
+  const dish = DISHES[Math.floor(Math.random() * DISHES.length)];
+  const pm = patienceMax();
+  S.customers[slot] = {
+    dish, patience: pm, maxPatience: pm,
+    face: FACES[Math.floor(Math.random() * FACES.length)]
+  };
+  sndPop();
+}
+
+function plateMatches(dish) {
+  if (S.plate.length !== dish.items.length) return false;
+  const a = [...S.plate].sort().join(",");
+  const b = [...dish.items].sort().join(",");
+  return a === b;
+}
+
+function addIngredient(key) {
+  if (!S || !S.running) return;
+  if (S.plate.includes(key)) { setMsg(ING[key].n + " is already on the plate!"); sndBad(); return; }
+  S.plate.push(key);
+  sndClick();
+  renderPlate(); renderCustomers();
+  const ready = S.customers.find(c => c && plateMatches(c.dish));
+  if (ready) setMsg("That's a " + ready.dish.name + "! Tap the glowing customer to serve 👆");
+}
+
+function serve(slot, ev) {
+  if (!S || !S.running) return;
+  const c = S.customers[slot];
+  if (!c) return;
+  if (!plateMatches(c.dish)) {
+    const el = document.querySelector('.cust[data-slot="' + slot + '"]');
+    if (el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+    setMsg("That plate isn't a " + c.dish.name + " yet — check the glowing ingredients.");
+    sndBad();
+    return;
+  }
+  const base = priceOf(c.dish);
+  const tip = Math.round(base * 0.5 * (c.patience / c.maxPatience));
+  const mult = 1 + Math.min(S.combo, 10) * 0.1;
+  const total = Math.round((base + tip) * mult);
+  S.money += total;
+  S.served++;
+  S.combo++;
+  S.bestCombo = Math.max(S.bestCombo, S.combo);
+  S.customers[slot] = null;
+  S.plate = [];
+  sndServe();
+  if (ev) floaty("+" + rp(total), ev.clientX, ev.clientY);
+  setMsg("Served " + c.dish.name + "! " + rp(base) + " + tip " + rp(tip) + (S.combo > 1 ? " · combo x" + S.combo : ""));
+  renderAll();
+}
+
+function customerLeaves(slot) {
+  const c = S.customers[slot];
+  S.customers[slot] = null;
+  S.lost++;
+  S.hearts--;
+  S.combo = 0;
+  sndOut();
+  setMsg("Oh no — the " + c.dish.name + " customer walked away! 😠");
+  if (S.hearts <= 0) endGame(false);
+}
+
+function endGame(timeUp) {
+  if (!S.running) return;
+  S.running = false;
+  document.getElementById("endtitle").textContent = timeUp ? "Shift over! 🎉" : "Out of hearts! 💔";
+  const stars = S.money >= 280000 ? 3 : S.money >= 180000 ? 2 : S.money >= 90000 ? 1 : 0;
+  document.getElementById("stars").textContent = "★★★".slice(0, stars) + "☆☆☆".slice(0, 3 - stars);
+  document.getElementById("st-money").textContent = rp(S.money);
+  document.getElementById("st-served").textContent = S.served;
+  document.getElementById("st-combo").textContent = "x" + S.bestCombo;
+  document.getElementById("st-lost").textContent = S.lost;
+  document.getElementById("endnote").textContent =
+    stars === 3 ? "Legendary! Your warung is the talk of the town. 🏆" :
+    stars === 2 ? "Great shift! The regulars will be back tomorrow." :
+    stars === 1 ? "A decent first shift — speed comes with practice!" :
+                  "Every great warung starts somewhere. Try again!";
+  document.getElementById("endscreen").classList.remove("hidden");
+  renderHUD();
+}
+
+function tick() {
+  if (!S || !S.running) return;
+  S.tick++;
+  // 10 ticks = 1 second
+  S.customers.forEach((c, i) => {
+    if (!c) return;
+    c.patience -= 0.1;
+    if (c.patience <= 0) customerLeaves(i);
+  });
+  if (!S.running) { renderAll(); return; }
+  S.spawnIn -= 0.1;
+  if (S.spawnIn <= 0) { spawnCustomer(); S.spawnIn = spawnEvery() * (0.75 + Math.random() * 0.5); }
+  if (S.tick % 10 === 0) {
+    S.timeLeft--;
+    if (S.timeLeft <= 0) { S.timeLeft = 0; endGame(true); }
+  }
+  renderHUD(); renderCustomers();
+}
+setInterval(tick, 100);
+
+/* ================= Rendering ================= */
+const $ = id => document.getElementById(id);
+
+function renderHUD() {
+  if (!S) return;
+  $("score").textContent = rp(S.money);
+  $("combo").textContent = "x" + S.combo;
+  $("hearts").textContent = "❤️".repeat(Math.max(0, S.hearts)) + "🖤".repeat(Math.max(0, 3 - S.hearts));
+  const m = Math.floor(S.timeLeft / 60), s = S.timeLeft % 60;
+  $("timelabel").textContent = "SHIFT ⏱ " + m + ":" + String(s).padStart(2, "0");
+  $("timebar").style.width = (S.timeLeft / SHIFT_LEN * 100) + "%";
+}
+
+function renderCustomers() {
+  if (!S) return;
+  const wrap = $("customers");
+  wrap.innerHTML = "";
+  S.customers.forEach((c, i) => {
+    const d = document.createElement("div");
+    if (!c) {
+      d.className = "cust empty";
+      d.innerHTML = "<div>🪑<br>waiting for<br>a customer…</div>";
+    } else {
+      const ready = plateMatches(c.dish);
+      d.className = "cust" + (ready ? " ready" : "");
+      d.dataset.slot = i;
+      const pct = Math.max(0, c.patience / c.maxPatience * 100);
+      const barColor = pct > 50 ? "#37d67a" : pct > 25 ? "#ffb347" : "#e8483f";
+      const face = pct <= 25 ? "😠" : c.face;
+      const items = c.dish.items.map(k =>
+        '<span class="oi' + (S.plate.includes(k) ? " got" : "") + '" title="' + ING[k].n + '">' + ING[k].e + "</span>"
+      ).join("");
+      d.innerHTML =
+        '<div class="face">' + face + "</div>" +
+        '<div class="dishname">' + c.dish.name + "</div>" +
+        '<div class="order">' + items + "</div>" +
+        '<div class="price">' + rp(priceOf(c.dish)) + "</div>" +
+        '<div class="patience"><div style="width:' + pct + "%;background:" + barColor + '"></div></div>';
+      d.addEventListener("click", ev => serve(i, ev));
+    }
+    wrap.appendChild(d);
+  });
+}
+
+function renderPlate() {
+  if (!S) return;
+  const p = $("plate");
+  if (!S.plate.length) {
+    p.innerHTML = '<span class="hint">Tap ingredients below to build a dish…</span>';
+  } else {
+    p.innerHTML = S.plate.map(k => '<span class="pi" title="' + ING[k].n + '">' + ING[k].e + "</span>").join("");
+  }
+  $("platecount").textContent = S.plate.length ? S.plate.length + " ingredient" + (S.plate.length > 1 ? "s" : "") : "";
+  $("undobtn").disabled = !S.plate.length;
+  $("trashbtn").disabled = !S.plate.length;
+  document.querySelectorAll(".ing").forEach(b => {
+    b.classList.toggle("used", S.plate.includes(b.dataset.key));
+  });
+}
+
+function renderTray() {
+  const tray = $("tray");
+  tray.innerHTML = "";
+  Object.keys(ING).forEach(k => {
+    const b = document.createElement("button");
+    b.className = "ing"; b.dataset.key = k;
+    b.innerHTML = '<span class="e">' + ING[k].e + '</span><span class="n">' + ING[k].n + "</span>";
+    b.addEventListener("click", () => addIngredient(k));
+    tray.appendChild(b);
+  });
+}
+
+function renderAll() { renderHUD(); renderCustomers(); renderPlate(); }
+
+let msgTimer = null;
+function setMsg(t) {
+  $("msg").textContent = t;
+  if (msgTimer) clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { $("msg").textContent = ""; }, 4000);
+}
+
+function floaty(text, x, y) {
+  const el = document.createElement("div");
+  el.className = "floaty";
+  el.textContent = text;
+  el.style.left = (x - 40) + "px";
+  el.style.top = (y - 20) + "px";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+$("undobtn").addEventListener("click", () => { if (S && S.running && S.plate.length) { S.plate.pop(); sndClick(); renderPlate(); renderCustomers(); } });
+$("trashbtn").addEventListener("click", () => { if (S && S.running && S.plate.length) { S.plate = []; sndBad(); renderPlate(); renderCustomers(); setMsg("Plate thrown away."); } });
+$("mutebtn").addEventListener("click", () => { muted = !muted; $("mutebtn").textContent = muted ? "🔇" : "🔊"; if (!muted) sndClick(); });
+$("startbtn").addEventListener("click", () => { sndServe(); newGame(); });
+$("againbtn").addEventListener("click", () => { sndServe(); newGame(); });
+
+renderTray();
+</script>
+</body>
+</html>
