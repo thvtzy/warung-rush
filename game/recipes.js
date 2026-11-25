@@ -31,7 +31,7 @@ const DISHES = [
   { name:"Nasi Campur",  items:["nasi","ayam","telur","cabai","kerupuk"] },
   { name:"Es Teh Manis", items:["teh","es","gula"] }
 ];
-const FACES = ["🧑","👩","👨","🧕","👵","👴","👦","👧","🧔","👱‍♀️"];
+const FACES = ["face1", "face2", "face3", "face4", "face5", "faceHijab"];
 
 const priceOf = d => 5000 + 3000 * d.items.length;
 const rp = n => "Rp" + n.toLocaleString("id-ID");

@@ -124,3 +124,28 @@ body::after {
   .ing .k { display:none; } #keyhints { display:none; }
   #sign { font-size:20px; }
 }
+
+/* ---------- Pixel sprites & cooking station ---------- */
+.spr { image-rendering:pixelated; display:block; }
+.ing .e .spr { width:42px; height:42px; object-fit:contain; }
+.order .oi .spr { width:22px; height:22px; }
+#plate .pi .spr { width:38px; height:38px; }
+.face .spr { width:54px; height:54px; }
+.hrt { width:20px; height:17px; display:inline-block; }
+.hudic { width:20px; height:20px; }
+#stove { position:relative; display:flex; flex-direction:column; align-items:center; margin:2px 0 8px; }
+#stove .wok { width:92px; }
+#stove .flames { display:flex; gap:26px; margin-top:-4px; visibility:hidden; }
+#stove.on .flames { visibility:visible; }
+#stove .flame { width:24px; animation:flick .26s steps(2) infinite alternate; }
+#stove .flame.fl2 { animation-delay:.13s; }
+@keyframes flick { from{ transform:scaleY(.85);} to{ transform:scaleY(1.12);} }
+#steam { position:relative; height:16px; width:92px; }
+#steam span { position:absolute; bottom:0; width:6px; height:6px; background:#fff8ea; opacity:0; }
+#steam span:nth-child(1) { left:22px; }
+#steam span:nth-child(2) { left:43px; animation-delay:.4s !important; }
+#steam span:nth-child(3) { left:64px; animation-delay:.8s !important; }
+#stove.on #steam span { animation:rise 1.2s steps(6) infinite; }
+@keyframes rise { 0%{ transform:translateY(0); opacity:0; } 25%{ opacity:.9; } 100%{ transform:translateY(-24px); opacity:0; } }
+.flyimg { position:fixed; width:42px; height:42px; z-index:70; pointer-events:none; }
+.burstimg { position:fixed; width:22px; height:22px; z-index:70; pointer-events:none; }
